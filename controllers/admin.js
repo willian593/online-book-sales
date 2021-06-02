@@ -10,6 +10,7 @@ const getAddProduct = async (req, res, next) => {
     pageTitle: 'Add Product',
     path: '/admin/add-product',
     editing: false,
+    isAuthenticated: req.session.isLoggedIn,
   });
 };
 
@@ -53,6 +54,7 @@ const getProducts = async (req, res, next) => {
       prods: products,
       pageTitle: 'Admin Products',
       path: '/admin/products',
+      isAuthenticated: req.session.isLoggedIn,
     });
   } catch (error) {
     console.error(error);
@@ -95,6 +97,7 @@ const getEditProduct = async (req, res, next) => {
       path: '/admin/edit-product',
       editing: editMode,
       product,
+      isAuthenticated: req.session.isLoggedIn,
     });
   } catch (error) {
     console.error(error);

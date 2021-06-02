@@ -1,12 +1,19 @@
 const path = require('path');
 const express = require('express');
 require('dotenv').config();
+const session = require('express-session');
+const MongoDBStore = require('connect-mongodb-session')(session);
+const store = new MongoDBStore({
+  uri: process.env.DB_CNN,
+  collection: 'sessions', // nombre como se guarda en la db
+});
+
 const { dbConnection } = require('./util/conexion-db');
 const errorController = require('./controllers/error');
 const User = require('./models/user');
-
 const adminRoutes = require('./routes/admin');
 const shopRoutes = require('./routes/shop');
+const authRoutes = require('./routes/auth');
 
 const app = express();
 const port = process.env.PORT || 8080;
@@ -29,6 +36,14 @@ app.set('views', 'views');
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(express.static(path.join(__dirname, 'public')));
+app.use(
+  session({
+    secret: process.env.SECRET_SESSION,
+    resave: false,
+    saveUninitialized: false,
+    store: store,
+  })
+);
 
 /*
 =====================================
@@ -37,14 +52,15 @@ app.use(express.static(path.join(__dirname, 'public')));
 */
 
 app.use((req, res, next) => {
-  User.findById('60b298087a089007944ac93d')
+  if (!req.session.user) {
+    return next();
+  }
+  User.findById(req.session.user._id)
     .then((user) => {
       req.user = user;
       next();
     })
-    .catch((err) => {
-      console.error(err);
-    });
+    .catch((err) => console.log(err));
 });
 
 /*
@@ -55,13 +71,15 @@ app.use((req, res, next) => {
 
 app.use('/admin', adminRoutes);
 app.use(shopRoutes);
+app.use(authRoutes);
 app.use(errorController.get404);
 
 /*
 =====================================
-       CONECTION SERVICE and DB
+ CONECTION SERVICE, mongoDB 
 =====================================
 */
+
 dbConnection();
 app.listen(port, () => {
   console.log(`⚡️[server]: Server is running at http://localhost:${port}`);
