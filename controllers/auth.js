@@ -1,4 +1,6 @@
 const User = require('../models/user');
+const bcrypt = require('bcryptjs');
+const { uppercaseLetters, lowercaseLetters } = require('../util/helpers');
 /*
 =====================================
  MOSTRAR PAGE LOGIN
@@ -43,4 +45,60 @@ const postLogout = async (req, res) => {
     console.error(error.stack);
   }
 };
-module.exports = { getLogin, postLogin, postLogout };
+
+/*
+=====================================
+ Registrase (signup)
+=====================================
+*/
+
+const getSignup = async (req, res) => {
+  try {
+    await res.render('auth/signup', {
+      path: '/signup',
+      pageTitle: 'Signup',
+      isAuthenticated: false,
+    });
+  } catch (error) {
+    console.error(error.stack);
+  }
+};
+/*
+=====================================
+ CREAR USUARIO (con email, pass)
+=====================================
+*/
+const postSignup = async (req, res) => {
+  const { email, password, confirmPassword } = req.body;
+  try {
+    // ver q email no este duplicado
+    const existEmail = await User.findOne({ email });
+    if (existEmail) {
+      await res.redirect('/signup');
+      console.log(`El correo ${existEmail.email} ya está registrado`);
+    }
+
+    const usuario = new User(req.body);
+
+    // encriptar pass
+    const salt = bcrypt.genSaltSync();
+    usuario.password = bcrypt.hashSync(password, salt);
+
+    // email minusculas
+    usuario.email = await lowercaseLetters(usuario.email);
+
+    await usuario.save(); //=> Guardando el new user
+    await res.redirect('/login');
+    console.log('Usuario creado');
+  } catch (error) {
+    console.error(error.stack);
+  }
+};
+
+module.exports = {
+  getLogin,
+  postLogin,
+  postLogout,
+  getSignup,
+  postSignup,
+};

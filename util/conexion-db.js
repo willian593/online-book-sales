@@ -9,7 +9,7 @@ const dbConnection = async () => {
       useCreateIndex: true,
     });
     console.log('DB Online');
-    await CreateUser();
+    // await CreateUser();
   } catch (error) {
     console.error(error);
     throw new Error('Error a la hora de iniciar la BD ver logs');
