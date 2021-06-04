@@ -16,16 +16,27 @@ const getLogin = async (req, res, next) => {
 };
 /*
 =====================================
- BTN LOGIN
+ iniciar session  BTN LOGIN
 =====================================
 */
 const postLogin = async (req, res, next) => {
-  const user = await User.findById('60b298087a089007944ac93d');
+  const { email, password } = req.body;
   try {
-    req.session.isLoggedIn = true;
-    req.session.user = user;
-    // await req.session.save();
-    await res.redirect('/');
+    const existEmail = await User.findOne({ email });
+    if (!existEmail) {
+      res.redirect('/login');
+      console.log(`Email no encontrado`);
+    }
+    // verificar contraseña
+    const validarPass = bcrypt.compareSync(password, existEmail.password);
+    if (validarPass) {
+      req.session.isLoggedIn = true;
+      req.session.user = existEmail;
+      // await req.session.save();
+      await res.redirect('/');
+      console.log(`Pass válido`);
+    }
+    await res.redirect('/login');
   } catch (error) {
     console.error(error.stack);
   }

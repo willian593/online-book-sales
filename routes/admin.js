@@ -10,16 +10,18 @@ const {
   postDeleteProduct,
 } = require('../controllers/admin');
 
-router.get('/add-product', getAddProduct);
+const { isAuth } = require('../middleware/is-auth');
 
-router.get('/products', getProducts);
+router.get('/add-product', isAuth, getAddProduct);
 
-router.post('/add-product', postAddProduct);
+router.get('/products', isAuth, getProducts);
 
-router.get('/edit-product/:id', getEditProduct);
+router.post('/add-product', isAuth, postAddProduct);
 
-router.post('/edit-product', postEditProdut);
+router.get('/edit-product/:id', isAuth, getEditProduct);
 
-router.post('/delete-product', postDeleteProduct);
+router.post('/edit-product', isAuth, postEditProdut);
+
+router.post('/delete-product', isAuth, postDeleteProduct);
 
 module.exports = router;
