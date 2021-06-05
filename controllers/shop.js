@@ -13,7 +13,6 @@ const getIndex = async (req, res, next) => {
       prods: products,
       pageTitle: 'Shop',
       path: '/',
-      isAuthenticated: req.session.isLoggedIn,
     });
   } catch (error) {
     console.error(error);
@@ -101,8 +100,8 @@ const postCart = async (req, res, next) => {
   const prodId = await req.body.id;
   try {
     const product = await Product.findById(prodId);
-    const result = await req.user.addToCart(product);
-    console.log(result);
+    await req.user.addToCart(product);
+    console.log('Producto agregado al carro');
     await res.redirect('/cart');
   } catch (error) {
     console.error(error);
@@ -140,13 +139,14 @@ const postOrder = async (req, res) => {
     });
     const order = new Order({
       user: {
-        name: req.user.name,
+        email: req.user.email,
         userId: req.user,
       },
       products: products,
     });
     await order.save();
     await req.user.clearCart();
+    console.log('Pedido finalizado');
     await res.redirect('/orders');
   } catch (error) {
     console.error(error.stack);

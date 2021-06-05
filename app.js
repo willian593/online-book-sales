@@ -2,12 +2,16 @@ const path = require('path');
 const express = require('express');
 require('dotenv').config();
 const session = require('express-session');
+const csrf = require('csurf');
+
+// para ver las sessiones
 const MongoDBStore = require('connect-mongodb-session')(session);
 const store = new MongoDBStore({
   uri: process.env.DB_CNN,
   collection: 'sessions', // nombre como se guarda en la db
 });
 
+const crsfProteccion = csrf();
 const { dbConnection } = require('./util/conexion-db');
 const errorController = require('./controllers/error');
 const User = require('./models/user');
@@ -44,6 +48,7 @@ app.use(
     store: store,
   })
 );
+app.use(crsfProteccion);
 
 /*
 =====================================
@@ -61,6 +66,12 @@ app.use((req, res, next) => {
       next();
     })
     .catch((err) => console.log(err));
+});
+
+app.use((req, res, next) => {
+  res.locals.isAuthenticated = req.session.isLoggedIn;
+  res.locals.csrfToken = req.csrfToken();
+  next();
 });
 
 /*
