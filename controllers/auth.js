@@ -8,11 +8,21 @@ const { uppercaseLetters, lowercaseLetters } = require('../util/helpers');
 */
 const getLogin = async (req, res, next) => {
   // const isLoggedIn = req.get('Cookie').split(';')[3].trim().split('=')[1];
-  await res.render('auth/login', {
-    path: '/login',
-    pageTitle: 'Login',
-    isAuthenticated: false,
-  });
+  let message = req.flash('error');
+  try {
+    if (message.length > 0) {
+      message = message[0];
+    } else {
+      message = null;
+    }
+    await res.render('auth/login', {
+      path: '/login',
+      pageTitle: 'Login',
+      errorMessage: message,
+    });
+  } catch (error) {
+    console.error(error.stack);
+  }
 };
 /*
 =====================================
@@ -24,8 +34,9 @@ const postLogin = async (req, res, next) => {
   try {
     const existEmail = await User.findOne({ email });
     if (!existEmail) {
-      res.redirect('/login');
+      await req.flash('error', 'Email o pass invalidos');
       console.log(`Email no encontrado`);
+      return res.redirect('/login');
     }
     // verificar contraseña
     const validarPass = bcrypt.compareSync(password, existEmail.password);
@@ -33,10 +44,11 @@ const postLogin = async (req, res, next) => {
       req.session.isLoggedIn = true;
       req.session.user = existEmail;
       // await req.session.save();
-      await res.redirect('/');
-      console.log(`Pass válido`);
+      console.log(`Iniciaste sesión con ${existEmail.email}`);
+      return res.redirect('/');
     }
-    await res.redirect('/login');
+    await req.flash('error', 'Pass o email invalidos');
+    return res.redirect('/login');
   } catch (error) {
     console.error(error.stack);
   }
@@ -64,11 +76,17 @@ const postLogout = async (req, res) => {
 */
 
 const getSignup = async (req, res) => {
+  let message = req.flash('error');
   try {
+    if (message.length > 0) {
+      message = message[0];
+    } else {
+      message = null;
+    }
     await res.render('auth/signup', {
       path: '/signup',
       pageTitle: 'Signup',
-      isAuthenticated: false,
+      errorMessage: message,
     });
   } catch (error) {
     console.error(error.stack);
@@ -81,12 +99,18 @@ const getSignup = async (req, res) => {
 */
 const postSignup = async (req, res) => {
   const { email, password, confirmPassword } = req.body;
+  // email minusculas
+  const emailMinuscula = await lowercaseLetters(email);
   try {
     // ver q email no este duplicado
-    const existEmail = await User.findOne({ email });
+    const existEmail = await User.findOne({ email: emailMinuscula });
     if (existEmail) {
-      await res.redirect('/signup');
+      await req.flash(
+        'error',
+        `El correo ${existEmail.email} ya está registrado`
+      );
       console.log(`El correo ${existEmail.email} ya está registrado`);
+      return res.redirect('/signup');
     }
 
     const usuario = new User(req.body);
@@ -94,9 +118,6 @@ const postSignup = async (req, res) => {
     // encriptar pass
     const salt = bcrypt.genSaltSync();
     usuario.password = bcrypt.hashSync(password, salt);
-
-    // email minusculas
-    usuario.email = await lowercaseLetters(usuario.email);
 
     await usuario.save(); //=> Guardando el new user
     await res.redirect('/login');

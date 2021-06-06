@@ -3,7 +3,7 @@ const express = require('express');
 require('dotenv').config();
 const session = require('express-session');
 const csrf = require('csurf');
-
+const flash = require('connect-flash');
 // para ver las sessiones
 const MongoDBStore = require('connect-mongodb-session')(session);
 const store = new MongoDBStore({
@@ -49,10 +49,10 @@ app.use(
   })
 );
 app.use(crsfProteccion);
-
+app.use(flash());
 /*
 =====================================
-       MIDDLEWARE USER
+       MIDDLEWARE USER Y FLASH
 =====================================
 */
 
@@ -73,6 +73,12 @@ app.use((req, res, next) => {
   res.locals.csrfToken = req.csrfToken();
   next();
 });
+
+// app.configure(function () {
+//   app.use(express.cookieParser('keyboard cat'));
+//   app.use(express.session({ cookie: { maxAge: 60000 } }));
+//   app.use(flash());
+// });
 
 /*
 =====================================
