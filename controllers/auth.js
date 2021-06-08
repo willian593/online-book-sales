@@ -1,6 +1,17 @@
 const User = require('../models/user');
 const bcrypt = require('bcryptjs');
+const nodemailer = require('nodemailer');
+const sgTransport = require('nodemailer-sendgrid-transport');
+
 const { uppercaseLetters, lowercaseLetters } = require('../util/helpers');
+
+const transporter = nodemailer.createTransport(
+  sgTransport({
+    auth: {
+      api_key: process.env.SENDGRID_USERNAME,
+    },
+  })
+);
 /*
 =====================================
  MOSTRAR PAGE LOGIN
@@ -120,6 +131,16 @@ const postSignup = async (req, res) => {
     usuario.password = bcrypt.hashSync(password, salt);
 
     await usuario.save(); //=> Guardando el new user
+
+    // send an email
+    await transporter.sendMail({
+      to: emailMinuscula,
+      from: 'natalia000096@hotmail.com',
+      subject: 'Hi there',
+      text: 'Su registro se ha realizado satisfactoriamente',
+      html: '<b>Su registro se ha realizado satisfactoriamente</b>',
+    });
+
     await res.redirect('/login');
     console.log('Usuario creado');
   } catch (error) {
