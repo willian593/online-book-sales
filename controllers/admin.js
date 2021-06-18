@@ -7,7 +7,7 @@ const Product = require('../models/product');
 */
 const getAddProduct = async (req, res, next) => {
   try {
-    await res.render('admin/edit-product', {
+    return res.render('admin/edit-product', {
       pageTitle: 'Add Product',
       path: '/admin/add-product',
       editing: false,
@@ -24,7 +24,7 @@ const getAddProduct = async (req, res, next) => {
 */
 
 const postAddProduct = async (req, res) => {
-  const { title, imgUrl, price, description } = req.body;
+  const { title, imgUrl, price, description } = await req.body;
   try {
     const product = new Product({
       title,
@@ -52,8 +52,11 @@ const postAddProduct = async (req, res) => {
 */
 const getProducts = async (req, res, next) => {
   try {
-    const products = await Product.find().populate('userId');
-    await res.render('admin/products', {
+    // solo muestra product q solo pertenescan
+    const products = await Product.find({ userId: req.user._id }).populate(
+      'userId'
+    );
+    return res.render('admin/products', {
       prods: products,
       pageTitle: 'Admin Products',
       path: '/admin/products',
@@ -63,29 +66,14 @@ const getProducts = async (req, res, next) => {
   }
 };
 
-// /*
-// =====================================
-// ELIMINAR PRODUCTS(de la ruta admin products)
-// =====================================
-// */
-const postDeleteProduct = async (req, res) => {
-  const { id } = req.body;
-  try {
-    await Product.findByIdAndDelete(id);
-    console.log('Producto eliminado');
-    res.redirect('/admin/products');
-  } catch (error) {
-    console.error(error);
-  }
-};
 /*
 // =====================================
 //     UPDATE PRODUCTS(btn edit)
 // =====================================
 // */
 const getEditProduct = async (req, res, next) => {
-  const editMode = req.query.edit;
-  const { id } = req.params;
+  const editMode = await req.query.edit;
+  const { id } = await req.params;
   try {
     if (!editMode) {
       return res.redirect('/');
@@ -106,14 +94,47 @@ const getEditProduct = async (req, res, next) => {
 };
 // guadar datos actualizados(btn update product)
 const postEditProdut = async (req, res) => {
-  const { id } = req.body;
-  const { ...campos } = req.body;
+  const { id, title, price, description, imgUrl } = await req.body;
+  // const { ...campos } = await req.body;
   try {
-    await Product.findByIdAndUpdate(id, campos, {
-      new: true,
-    });
-    await res.redirect('/admin/products');
+    //  const product = await Product.findByIdAndUpdate(id, campos, {
+    //     new: true,
+    //   });
+    const product = await Product.findById(id);
+    // q solo el user creador puedo eliminar
+    if (product.userId.toString() !== req.user._id.toString()) {
+      console.log('You dont have the privileges to edit the product');
+      return res.redirect('/');
+    }
+    product.title = title;
+    product.price = price;
+    product.description = description;
+    product.imgUrl = imgUrl;
+    await product.save();
     console.log('Producto actualizado');
+    await res.redirect('/admin/products');
+  } catch (error) {
+    console.error(error);
+  }
+};
+// /*
+// =====================================
+// ELIMINAR PRODUCTS(de la ruta admin products)
+// =====================================
+// */
+const postDeleteProduct = async (req, res, next) => {
+  const { id } = await req.body;
+  const product = await Product.findById(id);
+  try {
+    await Product.deleteOne({ _id: id, userId: req.user._id });
+    console.log(product.userId);
+    console.log(req.user._id);
+    if (product.userId.toString() !== req.user._id.toString()) {
+      console.log('You dont have the privileges to delete the product');
+      return res.redirect('/admin/products');
+    }
+    console.log('Producto eliminado');
+    return res.redirect('/admin/products');
   } catch (error) {
     console.error(error);
   }
